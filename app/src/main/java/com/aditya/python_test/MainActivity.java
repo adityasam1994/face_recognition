@@ -33,8 +33,9 @@ public class MainActivity extends AppCompatActivity {
     Button compare, open, capture;
     Uri selectedfile;
     ImageView mimg;
-    File file;
-    Uri outputfileuri;
+    Python py;
+    PyObject pyObject;
+    Bitmap myimage;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,6 +52,10 @@ public class MainActivity extends AppCompatActivity {
 
         if (! Python.isStarted()) {
             Python.start(new AndroidPlatform(this));
+
+            py = Python.getInstance();
+
+            pyObject = py.getModule("myscript");
         }
 
         capture.setOnClickListener(new View.OnClickListener() {
@@ -75,12 +80,10 @@ public class MainActivity extends AppCompatActivity {
         compare.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Python py = Python.getInstance();
-                PyObject pyObject = py.getModule("myscript");
-                PyObject pobj = pyObject.callAttr("main");
-                mtext.setText(pobj.toString());
+                compare_image();
             }
         });
+
     }
 
     @Override
@@ -89,28 +92,8 @@ public class MainActivity extends AppCompatActivity {
 
         if (requestCode == 100 && resultCode == RESULT_OK) {
             Bitmap photo = (Bitmap) data.getExtras().get("data");
+            myimage = photo;
             mimg.setImageBitmap(photo);
-
-            File filename = new File("/data/user/0/com.aditya.python_test/files/chaquopy/AssetFinder/app/test.jpg");
-            try (FileOutputStream out = new FileOutputStream(filename)) {
-                float aspectRatio = photo.getWidth() /
-                        (float) photo.getHeight();
-                int width = 250;
-                int height = Math.round(width / aspectRatio);
-
-                Bitmap.createScaledBitmap(photo, width, height, false).compress(Bitmap.CompressFormat.JPEG, 100, out); // bmp is your Bitmap instance
-                // PNG is a lossless format, the compression factor (100) is ignored
-
-                Python py = Python.getInstance();
-
-                PyObject pyObject = py.getModule("myscript");
-
-                PyObject pobj = pyObject.callAttr("main", "/data/user/0/com.aditya.python_test/files/chaquopy/AssetFinder/app/test.jpg");
-
-                checkResult(pobj.toString());
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
         }
 
         if (requestCode == 123 && resultCode == RESULT_OK) {
@@ -124,43 +107,38 @@ public class MainActivity extends AppCompatActivity {
                                 getContentResolver(),
                                 selectedfile);
 
-                float aspectRatio = bitmap.getWidth() /
-                        (float) bitmap.getHeight();
-                int width = 250;
-                int height = Math.round(width / aspectRatio);
-
-                FileOutputStream outStream = null;
-                File dir = new File("/data/user/0/com.aditya.python_test/files/chaquopy/AssetFinder/app/");
-                dir.mkdirs();
-                String fileName = "test.jpg";
-                File outFile = new File(dir, fileName);
-                outStream = new FileOutputStream(outFile);
-                Bitmap.createScaledBitmap(bitmap, width, height, false).compress(Bitmap.CompressFormat.JPEG, 100, outStream);
-                outStream.flush();
-                outStream.close();
-
-                Python py = Python.getInstance();
-
-                PyObject pyObject = py.getModule("myscript");
-
-                PyObject pobj = pyObject.callAttr("main", "/data/user/0/com.aditya.python_test/files/chaquopy/AssetFinder/app/test.jpg");
-
-                File imgFile = new  File("/data/user/0/com.aditya.python_test/files/chaquopy/AssetFinder/app/test.jpg");
-
-                if(imgFile.exists()){
-
-                    Bitmap myBitmap = BitmapFactory.decodeFile(imgFile.getAbsolutePath());
-
-                    mimg.setImageBitmap(myBitmap);
-
-                }
-
-                checkResult(pobj.toString());
+                myimage = bitmap;
+                mimg.setImageBitmap(bitmap);
             } catch (IOException e) {
                 // Log the exception
                 e.printStackTrace();
             }
 
+        }
+    }
+
+    private void compare_image(){
+        if(myimage != null) {
+            File filename = new File("/data/user/0/com.aditya.python_test/files/chaquopy/AssetFinder/app/test.jpg");
+            try (FileOutputStream out = new FileOutputStream(filename)) {
+                float aspectRatio = myimage.getWidth() /
+                        (float) myimage.getHeight();
+                int width = 250;
+                int height = Math.round(width / aspectRatio);
+
+                Bitmap.createScaledBitmap(myimage, width, height, false).compress(Bitmap.CompressFormat.JPEG, 100, out); // bmp is your Bitmap instance
+                // PNG is a lossless format, the compression factor (100) is ignored
+
+
+                PyObject pobj = pyObject.callAttr("main", "/data/user/0/com.aditya.python_test/files/chaquopy/AssetFinder/app/test.jpg");
+
+                mtext.setText(pobj.toString());
+                //checkResult(pobj.toString());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }else {
+            Toast.makeText(this, "First select or capture an Image", Toast.LENGTH_SHORT).show();
         }
     }
 

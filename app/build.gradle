@@ -21,6 +21,7 @@ android {
         }
 
         python {
+            //buildPython = "C:/pypy/python.exe"
             buildPython "C:/Users/aditya/AppData/Local/Programs/Python/Python39/python.exe"
 
             pip{
